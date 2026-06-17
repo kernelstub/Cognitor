@@ -6,7 +6,15 @@
       "calls": ["memcpy", "IoCompleteRequest"],
       "strings": ["IOCTL_SAMPLE"],
       "imports": ["memcpy"],
-      "operations": ["copy user buffer", "privileged operation"]
+      "operations": ["copy user buffer", "privileged operation"],
+      "ioctls": [
+        {
+          "code": "0x222003",
+          "device": "\\\\.\\CognitorSample",
+          "handlers": ["DispatchDeviceControl"],
+          "reachability": "noob"
+        }
+      ]
     }
   ]
 }

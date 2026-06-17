@@ -1,8 +1,6 @@
 package cli
 
 import (
-	"fmt"
-
 	snap "github.com/kernelstub/cognitor/internal/snapshot"
 	"github.com/spf13/cobra"
 )
@@ -30,7 +28,7 @@ func newSnapshotCreateCommand(streams ioStreams, configPath *string) *cobra.Comm
 			if err != nil {
 				return err
 			}
-			_, _ = fmt.Fprintf(streams.stdout, "created snapshot %s: copied=%d created=%d skipped=%d\n", result.Path, result.CopiedFiles, result.CreatedFiles, result.SkippedFiles)
+			statusf(streams.stdout, statusSuccess, "created snapshot %s: copied=%d created=%d skipped=%d", result.Path, result.CopiedFiles, result.CreatedFiles, result.SkippedFiles)
 			return nil
 		},
 	}

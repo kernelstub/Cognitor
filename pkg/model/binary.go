@@ -15,7 +15,22 @@ type Binary struct {
 	Sections   []Section  `json:"sections"`
 	Strings    []string   `json:"strings"`
 	Functions  []Function `json:"functions"`
+	IOCTLs     []IOCTL    `json:"ioctls,omitempty"`
 	Manifest   string     `json:"manifest"`
+}
+
+type IOCTL struct {
+	Code         string   `json:"code"`
+	Name         string   `json:"name,omitempty"`
+	Device       string   `json:"device,omitempty"`
+	DeviceType   string   `json:"device_type,omitempty"`
+	Method       string   `json:"method,omitempty"`
+	Access       string   `json:"access,omitempty"`
+	Function     string   `json:"function,omitempty"`
+	Handlers     []string `json:"handlers,omitempty"`
+	Reachability string   `json:"reachability,omitempty"`
+	Source       string   `json:"source,omitempty"`
+	RiskSignals  []string `json:"risk_signals,omitempty"`
 }
 
 type Artifact struct {

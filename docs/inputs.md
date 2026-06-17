@@ -76,14 +76,32 @@ Shape:
 
 ```json
 {
+  "ioctls": [
+    {
+      "code": "0x00222003",
+      "name": "IOCTL_SAMPLE",
+      "device": "\\\\.\\Sample",
+      "method": "METHOD_NEITHER",
+      "access": "FILE_ANY_ACCESS",
+      "handlers": ["DispatchDeviceControl"],
+      "reachability": "noob",
+      "source": "ida-immediate"
+    }
+  ],
   "functions": [
     {
-      "name": "NtCreateFile",
+      "name": "DispatchDeviceControl",
       "basic_block_count": 15,
-      "calls": ["NtCreateFile", "RtlValidSecurityDescriptor", "ObReferenceObjectByHandle"],
-      "strings": ["object manager", "access mask validation", "syscall previous mode validation"],
-      "imports": ["ntoskrnl.exe!ObReferenceObjectByHandle"],
-      "operations": ["syscall dispatch", "access mask validation", "length check", "handle type validation"]
+      "calls": ["ProbeForRead", "SeAccessCheck", "memcpy"],
+      "strings": ["IOCTL_SAMPLE", "input buffer validation"],
+      "imports": ["ntoskrnl.exe!ProbeForRead", "ntoskrnl.exe!SeAccessCheck"],
+      "operations": ["access mask validation", "length check", "copy user buffer"],
+      "ioctls": [
+        {
+          "code": "0x00222003",
+          "handlers": ["DispatchDeviceControl"]
+        }
+      ]
     }
   ]
 }
@@ -97,6 +115,20 @@ Fields:
 - `strings`: strings referenced by the function.
 - `imports`: imports associated with the function.
 - `operations`: normalized semantic notes from an exporter.
+- `ioctls`: optional IOCTL records. They can appear at the top level or under `functions[].ioctls`.
+
+IOCTL fields:
+
+- `code`: hexadecimal IOCTL code. Short forms such as `50` are normalized.
+- `name`: friendly symbolic name, when available.
+- `device`: user-mode device path or device object hint.
+- `method`: decoded or supplied method, such as `METHOD_BUFFERED` or `METHOD_NEITHER`.
+- `access`: decoded or supplied access, such as `FILE_ANY_ACCESS` or `FILE_READ_DATA`.
+- `handlers`: dispatch functions that handle the code.
+- `reachability`: observed caller context, for example `noob` or `exp`.
+- `source`: exporter/source hint, such as `ida-immediate`, `ida-string`, or `manual`.
+
+When `method`, `access`, or CTL_CODE details are omitted, `cognitor lab ioctls` decodes what it can from `code` and adds conservative risk signals for lab triage.
 
 ### Symbols Sidecar
 
@@ -185,5 +217,6 @@ cognitor snapshot create --name new --path snapshots/new --source /mnt/windows-b
 
 - Keep old and new relative paths consistent.
 - Include sidecars for high-value targets such as `ntdll.dll`, drivers, RPC services, COM brokers, and parsers.
+- For drivers, include IOCTL metadata where possible so `lab diff-ioctls`, `lab reachability`, and `lab surface` can prioritize review.
 - Include service and registry context when reviewing privilege boundaries.
 - Use `--focus` to keep reports small during deep dives.

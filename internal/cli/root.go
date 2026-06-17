@@ -6,7 +6,7 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const Version = "0.1.0"
+const Version = "1.0.2"
 
 type ioStreams struct {
 	stdout io.Writer
@@ -29,6 +29,7 @@ func NewRoot(stdout io.Writer, stderr io.Writer) *cobra.Command {
 	cmd.AddCommand(newDiffCommand(streams, &configPath))
 	cmd.AddCommand(newReportCommand(streams, &configPath))
 	cmd.AddCommand(newGraphCommand(streams, &configPath))
+	cmd.AddCommand(newLabCommand(streams, &configPath))
 	cmd.AddCommand(newRulesCommand(streams))
 	cmd.AddCommand(newVersionCommand(streams))
 	return cmd

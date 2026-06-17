@@ -14,9 +14,9 @@ func Validate(cfg Config) error {
 		errs = append(errs, fmt.Errorf("string_min_length must be at least three"))
 	}
 	switch cfg.OutputFormat {
-	case "json", "markdown", "sarif":
+	case "json", "markdown", "sarif", "csv":
 	default:
-		errs = append(errs, fmt.Errorf("output_format must be json, markdown, or sarif"))
+		errs = append(errs, fmt.Errorf("output_format must be json, markdown, sarif, or csv"))
 	}
 	return errors.Join(errs...)
 }

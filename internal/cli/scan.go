@@ -1,8 +1,6 @@
 package cli
 
 import (
-	"fmt"
-
 	"github.com/kernelstub/cognitor/internal/ingest"
 	"github.com/kernelstub/cognitor/internal/store"
 	"github.com/spf13/cobra"
@@ -30,7 +28,7 @@ func newScanCommand(streams ioStreams, configPath *string) *cobra.Command {
 			if err := db.SaveSnapshot(cmd.Context(), snapshot); err != nil {
 				return err
 			}
-			_, _ = fmt.Fprintf(streams.stdout, "scanned %s: %d binaries -> %s\n", name, len(snapshot.Binaries), out)
+			statusf(streams.stdout, statusSuccess, "scanned %s: %d binaries -> %s", name, len(snapshot.Binaries), out)
 			return nil
 		},
 	}

@@ -6,7 +6,16 @@
       "calls": ["ProbeForRead", "SeAccessCheck", "memcpy", "IoCompleteRequest"],
       "strings": ["IOCTL_SAMPLE", "input buffer validation"],
       "imports": ["ProbeForRead", "SeAccessCheck", "memcpy"],
-      "operations": ["access mask validation", "length check before copy", "copy user buffer", "privileged operation"]
+      "operations": ["access mask validation", "length check before copy", "copy user buffer", "privileged operation"],
+      "ioctls": [
+        {
+          "code": "0x226003",
+          "device": "\\\\.\\CognitorSample",
+          "access": "FILE_READ_DATA",
+          "handlers": ["DispatchDeviceControl"],
+          "reachability": "exp"
+        }
+      ]
     }
   ]
 }

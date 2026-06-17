@@ -22,6 +22,38 @@ Most users only need one command:
 ```
 
 That scans both folders, compares binaries and evidence artifacts, writes `findings.db`, creates `report.md`, and prints the overall risk posture.
+Human-facing runs show the Cognitor banner and grouped status output:
+
+```text
+ _____ _____ _____ _____ _____ _____ _____ _____
+|     |     |   __|   | |     |_   _|     | __  |
+|   --|  |  |  |  | | | |-   -| | | |  |  |    -|
+|_____|_____|_____|_|___|_____| |_| |_____|__|__|
+
+cognitor v1.0.2
+kernelstub · github.com/kernelstub/cognitor
+
+────────────────────────────────────────
+
+● scanning snapshots
+  old  ./testdata/snapshots/old
+  new  ./testdata/snapshots/new
+
+● comparison complete
+  9 findings · 2 modified binaries · 1 changed artifact
+
+▲ risk elevated
+  same-day review recommended
+
+● outputs written
+  db        out/findings.db
+  report    markdown · json · sarif · csv
+  manifest  out/cognitor-bundle.json
+
+✓ done
+```
+
+Use `--no-banner` for quieter CI logs.
 
 Equivalent explicit forms:
 
@@ -185,23 +217,62 @@ with this shape:
 
 ```json
 {
+  "ioctls": [
+    {
+      "code": "0x00222003",
+      "device": "\\\\.\\Example",
+      "method": "METHOD_NEITHER",
+      "access": "FILE_ANY_ACCESS",
+      "handlers": ["DispatchDeviceControl"],
+      "reachability": "noob"
+    }
+  ],
   "functions": [
     {
-      "name": "DispatchCreate",
+      "name": "DispatchDeviceControl",
       "basic_block_count": 8,
       "calls": ["memcpy"],
       "strings": ["IOCTL_FOO"],
-      "operations": ["copy user buffer"]
+      "operations": ["copy user buffer"],
+      "ioctls": [
+        {
+          "code": "0x00222003",
+          "handlers": ["DispatchDeviceControl"]
+        }
+      ]
     }
   ]
 }
 ```
+
+IOCTL metadata is optional, but when present Cognitor normalizes codes, decodes CTL_CODE fields, tracks handler names, and powers `lab ioctls`, `lab diff-ioctls`, and `lab surface`.
 
 ## Reports
 
 Markdown reports include run metadata, executive risk posture, priority review queue, automatic change inventory, top changed components, top findings, semantic clusters, likely vulnerability classes, sibling-bug hypotheses, and a manual review plan. JSON and SARIF are deterministic for automation. CSV provides a compact triage export for spreadsheets and CI dashboards.
 
 Reports also include beginner guidance and a researcher checklist. The rule engine looks for defensive patch signals across access checks, memory/bounds checks, native API/syscall boundary validation, handle/object validation, token and impersonation flow, RPC auth and marshalling validation, COM launch/security permission changes, ALPC, registry, services, and object lifetime/rundown protection.
+
+## Lab Automation
+
+Cognitor includes a `lab` command family for driver patch-diff workflows that used to require disconnected scripts:
+
+```sh
+cognitor lab pairs --prepatch ./prepatch --patched ./patched --out out/prepatch-pairs.json
+cognitor lab sidecars --snapshot ./patched --out out/sidecars.json
+cognitor lab ioctls --snapshot ./patched --out out/ioctl.json
+cognitor lab diff-ioctls --old ./prepatch --new ./patched --out out/ioctl-diff.json
+cognitor lab reachability --log ./ioctl_zap.log --out out/reachability.json
+cognitor lab surface --snapshot ./patched --out out/surface.json
+cognitor lab crashes --manifest ./crashes/crashes.json --out out/crash-findings.json
+cognitor lab dossier --old ./prepatch --new ./patched --out out/lab-dossier.json --markdown out/lab-dossier.md
+```
+
+The lab workflow covers pair auditing, sidecar coverage checks, BinExport-free IDA extraction, IOCTL normalization and diffing, generic defensive reachability checks, A/B driver swapping, crash intake, attack-surface ranking, and combined dossier generation for manual research triage.
+
+`tools/ida/ioctl_export.py` exports `.analysis.json` sidecars and `ioctl.json` from IDA without relying on BinExport. `scripts/lab/ioctl_zap.c` is a generic defensive reachability harness, and the PowerShell scripts in `scripts/lab/` build/deploy it, swap prepatch/patched drivers in a lab VM, test standard-user versus elevated reachability, and pull crash manifests. See [docs/lab.md](docs/lab.md).
+
+Credentials, hostnames, device names, and driver paths are not hardcoded. Start from `scripts/lab/env.example.ps1` and keep real values in your local shell profile or a private ignored file.
 
 ## Development
 

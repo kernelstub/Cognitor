@@ -76,6 +76,15 @@ With:
 
 ```json
 {
+  "ioctls": [
+    {
+      "code": "0x00222003",
+      "device": "\\\\.\\Example",
+      "handlers": ["DispatchDeviceControl"],
+      "reachability": "noob",
+      "source": "custom-exporter"
+    }
+  ],
   "functions": [
     {
       "name": "FunctionName",
@@ -83,7 +92,13 @@ With:
       "calls": ["ApiCall"],
       "strings": ["string evidence"],
       "imports": ["module!import"],
-      "operations": ["normalized semantic operation"]
+      "operations": ["normalized semantic operation"],
+      "ioctls": [
+        {
+          "code": "0x00222003",
+          "handlers": ["FunctionName"]
+        }
+      ]
     }
   ]
 }
@@ -94,7 +109,16 @@ Exporter quality tips:
 - Normalize API names consistently.
 - Include security-relevant operations such as `access mask validation`, `length check`, `handle type validation`, or `rpc auth level check`.
 - Include strings even if symbols are stripped.
+- For drivers, emit IOCTL records from dispatch switch cases, comparison immediates, symbolic constants, or recovered CTL_CODE macros.
+- Include `reachability` when lab evidence shows whether a standard user (`noob`) or elevated caller (`exp`) can open the device and issue the code.
 - Prefer stable function names when available; synthetic names are acceptable.
+
+IOCTL exporter quality tips:
+
+- Preserve exact hexadecimal codes; Cognitor normalizes padding and case.
+- Fill `method` and `access` if your tool has symbolic CTL_CODE data; otherwise Cognitor decodes them from the code.
+- Set `handlers` to dispatch or helper functions that enforce access, probe buffers, or perform sensitive work.
+- Keep notes defensive and review-oriented. Do not emit exploit payloads or bypass steps.
 
 ## Add A Report Format
 

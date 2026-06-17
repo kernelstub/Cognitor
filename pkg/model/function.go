@@ -11,6 +11,7 @@ type Function struct {
 	Strings         []string `json:"strings"`
 	Imports         []string `json:"imports"`
 	Operations      []string `json:"operations"`
+	IOCTLs          []IOCTL  `json:"ioctls,omitempty"`
 }
 
 type FunctionPair struct {

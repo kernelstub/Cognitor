@@ -42,7 +42,7 @@ func TestCLIAnalyzeConvenienceFixture(t *testing.T) {
 	if err := RunWithIO(context.Background(), args, &out, &errOut); err != nil {
 		t.Fatalf("%v failed: %v stderr=%s", args, err, errOut.String())
 	}
-	if !strings.Contains(out.String(), "done:") {
+	if !strings.Contains(out.String(), "✓ done") {
 		t.Fatalf("expected completion output, got %s", out.String())
 	}
 }
@@ -55,7 +55,7 @@ func TestCLICompareAliasFixture(t *testing.T) {
 	if err := RunWithIO(context.Background(), args, &out, &errOut); err != nil {
 		t.Fatalf("%v failed: %v stderr=%s", args, err, errOut.String())
 	}
-	if !strings.Contains(out.String(), "report:") {
+	if !strings.Contains(out.String(), "report    markdown · json · sarif · csv") {
 		t.Fatalf("expected report output, got %s", out.String())
 	}
 	for _, name := range []string{"report.md", "report.json", "report.sarif", "report.csv", "findings.db", "cognitor-bundle.json"} {

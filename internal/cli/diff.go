@@ -1,8 +1,6 @@
 package cli
 
 import (
-	"fmt"
-
 	sem "github.com/kernelstub/cognitor/internal/diff"
 	"github.com/kernelstub/cognitor/internal/graph"
 	"github.com/kernelstub/cognitor/internal/store"
@@ -52,7 +50,7 @@ func newDiffCommand(streams ioStreams, configPath *string) *cobra.Command {
 			if err := outStore.SaveGraph(cmd.Context(), graph.Build(newSnapshot, findings)); err != nil {
 				return err
 			}
-			_, _ = fmt.Fprintf(streams.stdout, "diffed %d findings and %d changed binaries -> %s\n", len(findings), len(changes.ModifiedBinaries), out)
+			statusf(streams.stdout, statusSuccess, "diffed %d findings and %d changed binaries -> %s", len(findings), len(changes.ModifiedBinaries), out)
 			return nil
 		},
 	}

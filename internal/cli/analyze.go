@@ -20,7 +20,7 @@ import (
 func newAnalyzeCommand(streams ioStreams, configPath *string) *cobra.Command {
 	var oldPath, newPath, workDir, format, reportOut, failOn string
 	var focus []string
-	var allFormats bool
+	var allFormats, noBanner bool
 	cmd := &cobra.Command{
 		Use:     "analyze [old snapshot directory] [new snapshot directory]",
 		Aliases: []string{"compare", "patch-diff", "pdiff"},
@@ -63,12 +63,11 @@ func newAnalyzeCommand(streams ioStreams, configPath *string) *cobra.Command {
 				}
 			}
 
-			_, _ = fmt.Fprintf(streams.stdout, "scanning old snapshot: %s\n", oldPath)
+			analyzeStartf(streams.stdout, oldPath, newPath, noBanner)
 			oldSnapshot, err := ingest.Scan(cmd.Context(), ingest.Options{Name: "old", Path: oldPath, Workers: cfg.Workers, StringMinLength: cfg.StringMinLength})
 			if err != nil {
 				return err
 			}
-			_, _ = fmt.Fprintf(streams.stdout, "scanning new snapshot: %s\n", newPath)
 			newSnapshot, err := ingest.Scan(cmd.Context(), ingest.Options{Name: "new", Path: newPath, Workers: cfg.Workers, StringMinLength: cfg.StringMinLength})
 			if err != nil {
 				return err
@@ -78,9 +77,8 @@ func newAnalyzeCommand(streams ioStreams, configPath *string) *cobra.Command {
 				if err != nil {
 					return err
 				}
-				_, _ = fmt.Fprintf(streams.stdout, "focus: %s\n", strings.Join(focus, ", "))
+				analyzeFocusf(streams.stdout, focus)
 			}
-			_, _ = fmt.Fprintf(streams.stdout, "comparing snapshots and building report bundle\n")
 			findings := sem.Analyze(cmd.Context(), oldSnapshot, newSnapshot)
 			changes := sem.SummarizeChanges(oldSnapshot, newSnapshot)
 			graphModel := graph.Build(newSnapshot, findings)
@@ -115,13 +113,7 @@ func newAnalyzeCommand(streams ioStreams, configPath *string) *cobra.Command {
 			if err != nil {
 				return err
 			}
-			_, _ = fmt.Fprintf(streams.stdout, "done: %d findings, %d modified binaries, %d changed artifacts\n", len(findings), len(changes.ModifiedBinaries), len(changes.ChangedArtifacts))
-			_, _ = fmt.Fprintf(streams.stdout, "risk: %s (%s)\n", report.Executive.RiskLevel, report.Executive.Priority)
-			_, _ = fmt.Fprintf(streams.stdout, "database: %s\n", dbPath)
-			for _, output := range outputs {
-				_, _ = fmt.Fprintf(streams.stdout, "report: %s\n", output)
-			}
-			_, _ = fmt.Fprintf(streams.stdout, "manifest: %s\n", manifestPath)
+			analyzeDonef(streams.stdout, len(findings), changes, report, dbPath, outputs, manifestPath)
 			if thresholdExceeded(findings, failOn) {
 				return fmt.Errorf("policy gate failed: finding severity met or exceeded %q", failOn)
 			}
@@ -134,9 +126,21 @@ func newAnalyzeCommand(streams ioStreams, configPath *string) *cobra.Command {
 	cmd.Flags().StringVar(&format, "format", "", "report format: markdown, json, sarif, csv")
 	cmd.Flags().StringVar(&reportOut, "out", "", "output report path, or output directory with --all-formats")
 	cmd.Flags().BoolVar(&allFormats, "all-formats", false, "write markdown, JSON, SARIF, and CSV reports")
+	cmd.Flags().BoolVar(&noBanner, "no-banner", false, "suppress the Cognitor ASCII banner")
 	cmd.Flags().StringVar(&failOn, "fail-on", "", "exit non-zero when a finding reaches severity: low, medium, high")
 	cmd.Flags().StringSliceVar(&focus, "focus", nil, "limit analysis to matching binary/artifact names or glob paths, for example ntdll.dll or *.dll")
 	return cmd
+}
+
+func riskStatusKind(risk string) statusKind {
+	switch strings.ToLower(risk) {
+	case "critical", "high", "elevated":
+		return statusWarning
+	case "unknown":
+		return statusQuestion
+	default:
+		return statusInfo
+	}
 }
 
 func writeAnalyzeReports(report model.Report, format string, workDir string, out string, allFormats bool) ([]string, error) {

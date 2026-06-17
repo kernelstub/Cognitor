@@ -23,6 +23,7 @@ type Options struct {
 
 type AnalysisExport struct {
 	Functions []model.Function `json:"functions"`
+	IOCTLs    []model.IOCTL    `json:"ioctls"`
 }
 
 func Scan(ctx context.Context, opts Options) (model.Snapshot, error) {
@@ -107,7 +108,7 @@ func scanBinary(ctx context.Context, snapshotID string, root string, path string
 	if err != nil {
 		return model.Binary{}, err
 	}
-	functions, err := readFunctions(path)
+	functions, ioctls, err := readAnalysis(path)
 	if err != nil {
 		return model.Binary{}, err
 	}
@@ -136,6 +137,7 @@ func scanBinary(ctx context.Context, snapshotID string, root string, path string
 		Sections:   sections,
 		Strings:    stringsFound,
 		Functions:  functions,
+		IOCTLs:     ioctls,
 		Manifest:   ReadManifest(path),
 	}, nil
 }
@@ -195,24 +197,89 @@ func isBinarySidecar(path string) bool {
 	return false
 }
 
-func readFunctions(path string) ([]model.Function, error) {
+func readAnalysis(path string) ([]model.Function, []model.IOCTL, error) {
 	data, err := os.ReadFile(path + ".analysis.json")
 	if err != nil {
 		symbols, symErr := ReadSymbols(path)
 		if symErr != nil {
-			return nil, symErr
+			return nil, nil, symErr
 		}
 		var functions []model.Function
 		for _, symbol := range symbols {
 			functions = append(functions, model.Function{Name: symbol, NormalizedName: NormalizeSymbol(symbol)})
 		}
-		return functions, nil
+		return functions, nil, nil
 	}
 	var export AnalysisExport
 	if err := json.Unmarshal(data, &export); err != nil {
-		return nil, err
+		return nil, nil, err
 	}
-	return export.Functions, nil
+	ioctls := append([]model.IOCTL{}, export.IOCTLs...)
+	for _, fn := range export.Functions {
+		for _, ioctl := range fn.IOCTLs {
+			if ioctl.Source == "" {
+				ioctl.Source = fn.Name
+			}
+			if len(ioctl.Handlers) == 0 && fn.Name != "" {
+				ioctl.Handlers = []string{fn.Name}
+			}
+			ioctls = append(ioctls, ioctl)
+		}
+	}
+	return export.Functions, normalizeIOCTLs(ioctls), nil
+}
+
+func normalizeIOCTLs(values []model.IOCTL) []model.IOCTL {
+	seen := map[string]model.IOCTL{}
+	for _, value := range values {
+		value.Code = strings.ToLower(strings.TrimSpace(value.Code))
+		if value.Code == "" {
+			continue
+		}
+		if !strings.HasPrefix(value.Code, "0x") {
+			value.Code = "0x" + value.Code
+		}
+		key := value.Code
+		existing, ok := seen[key]
+		if !ok {
+			seen[key] = value
+			continue
+		}
+		existing.Handlers = cleanSymbols(append(existing.Handlers, value.Handlers...))
+		if existing.Name == "" {
+			existing.Name = value.Name
+		}
+		if existing.Device == "" {
+			existing.Device = value.Device
+		}
+		if existing.Method == "" {
+			existing.Method = value.Method
+		}
+		if existing.Access == "" {
+			existing.Access = value.Access
+		}
+		if existing.Function == "" {
+			existing.Function = value.Function
+		}
+		if existing.Reachability == "" {
+			existing.Reachability = value.Reachability
+		}
+		if existing.Source == "" {
+			existing.Source = value.Source
+		}
+		seen[key] = existing
+	}
+	out := make([]model.IOCTL, 0, len(seen))
+	for _, value := range seen {
+		out = append(out, value)
+	}
+	sort.Slice(out, func(i, j int) bool {
+		if out[i].Device == out[j].Device {
+			return out[i].Code < out[j].Code
+		}
+		return out[i].Device < out[j].Device
+	})
+	return out
 }
 
 func readTextSidecar(path string) string {

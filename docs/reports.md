@@ -19,6 +19,29 @@ out/report.csv
 out/cognitor-bundle.json
 ```
 
+`compare`, `analyze`, and `patch-diff` use grouped human-facing output:
+
+```text
+● scanning snapshots
+  old  old
+  new  new
+
+● comparison complete
+  9 findings · 2 modified binaries · 1 changed artifact
+
+▲ risk elevated
+  same-day review recommended
+
+● outputs written
+  db        out/findings.db
+  report    markdown · json · sarif · csv
+  manifest  out/cognitor-bundle.json
+
+✓ done
+```
+
+Use `--no-banner` on `compare`, `analyze`, or `patch-diff` when logs are consumed by CI. Staged commands such as `scan`, `diff`, and `report --out` use compact `[+]` completion lines.
+
 ## Markdown
 
 `report.md` is the primary analyst report.
@@ -93,6 +116,21 @@ CSV includes findings plus high-value binary and artifact changes.
 
 Use this when you want repeatable queries or staged processing.
 
+## Lab Artifacts
+
+The `lab` command family emits JSON artifacts intended for driver research workflows:
+
+- `prepatch-pairs.json`: patched files that do or do not have a prepatch pair.
+- `sidecars.json`: sidecar coverage and thin-sidecar warnings.
+- `ioctl.json`: normalized IOCTL inventory with decoded CTL_CODE fields.
+- `ioctl-diff.json`: added, removed, and changed IOCTLs between snapshots.
+- `reachability.json`: parsed noob/elevated harness results.
+- `surface.json`: ranked attack-surface triage targets and review focus.
+- `crash-findings.json`: crash/bugcheck records converted into finding seeds.
+- `lab-dossier.json` and `lab-dossier.md`: combined pair audit, sidecar coverage, IOCTL diff, surface ranking, optional reachability/crash evidence, priority queue, and next actions.
+
+These files are separate from `report.json` because they describe lab state and review prioritization, not confirmed vulnerabilities.
+
 ## Bundle Manifest
 
 `cognitor-bundle.json` records:
@@ -110,7 +148,7 @@ Example:
 ```json
 {
   "generated_at": "2026-06-13T20:19:07Z",
-  "tool_version": "0.1.0",
+  "tool_version": "1.0.2",
   "old_path": "./old",
   "new_path": "./new",
   "risk_level": "elevated",

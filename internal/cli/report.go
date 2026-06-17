@@ -63,7 +63,7 @@ func newReportCommand(streams ioStreams, configPath *string) *cobra.Command {
 			if err := os.WriteFile(out, data, 0o644); err != nil {
 				return err
 			}
-			_, _ = fmt.Fprintf(streams.stdout, "wrote %s report -> %s\n", format, out)
+			statusf(streams.stdout, statusSuccess, "wrote %s report -> %s", format, out)
 			return nil
 		},
 	}

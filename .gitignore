@@ -5,6 +5,7 @@
 *.exe
 *.exe~
 *.dll
+!testdata/**/*.dll
 *.so
 *.dylib
 
@@ -26,6 +27,9 @@ go.work.sum
 
 # env file
 .env
+*.local.ps1
+out/
+bin/
 
 # Editor/IDE
 # .idea/

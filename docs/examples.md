@@ -10,6 +10,37 @@ Run the included fixture:
 go run ./cmd/cognitor compare ./testdata/snapshots/old ./testdata/snapshots/new --workdir ./out --all-formats
 ```
 
+Expected console shape:
+
+```text
+ _____ _____ _____ _____ _____ _____ _____ _____
+|     |     |   __|   | |     |_   _|     | __  |
+|   --|  |  |  |  | | | |-   -| | | |  |  |    -|
+|_____|_____|_____|_|___|_____| |_| |_____|__|__|
+
+cognitor v1.0.2
+kernelstub · github.com/kernelstub/cognitor
+
+────────────────────────────────────────
+
+● scanning snapshots
+  old  ./testdata/snapshots/old
+  new  ./testdata/snapshots/new
+
+● comparison complete
+  9 findings · 2 modified binaries · 1 changed artifact
+
+▲ risk elevated
+  same-day review recommended
+
+● outputs written
+  db        ./out/findings.db
+  report    markdown · json · sarif · csv
+  manifest  ./out/cognitor-bundle.json
+
+✓ done
+```
+
 Open the Markdown report:
 
 ```sh
@@ -82,13 +113,13 @@ Look first at:
 Fail a pipeline when a high-severity finding appears:
 
 ```sh
-cognitor compare snapshots/old snapshots/new --workdir out --all-formats --fail-on high
+cognitor compare snapshots/old snapshots/new --workdir out --all-formats --fail-on high --no-banner
 ```
 
 Fail on medium or higher:
 
 ```sh
-cognitor compare snapshots/old snapshots/new --workdir out --all-formats --fail-on medium
+cognitor compare snapshots/old snapshots/new --workdir out --all-formats --fail-on medium --no-banner
 ```
 
 Archive these files from CI:
@@ -155,7 +186,41 @@ Example sidecar:
 
 Sidecars improve function matching and give rules stronger evidence.
 
-## 9. Add Service And Registry Context
+## 9. Driver Lab Workflow
+
+Audit pair coverage and sidecar quality:
+
+```sh
+cognitor lab pairs --prepatch snapshots/old --patched snapshots/new --out out/pairs.json
+cognitor lab sidecars --snapshot snapshots/new --out out/sidecars.json
+```
+
+Build and diff IOCTL inventories:
+
+```sh
+cognitor lab ioctls --snapshot snapshots/new --out out/ioctl.json
+cognitor lab diff-ioctls --old snapshots/old --new snapshots/new --out out/ioctl-diff.json
+```
+
+Rank manual review targets:
+
+```sh
+cognitor lab surface --snapshot snapshots/new --out out/surface.json
+```
+
+Generate a combined handoff:
+
+```sh
+cognitor lab dossier --old snapshots/old --new snapshots/new --out out/lab-dossier.json --markdown out/lab-dossier.md
+```
+
+Parse a harness log after a lab run:
+
+```sh
+cognitor lab reachability --log patched-zap.log --out out/reachability.json
+```
+
+## 10. Add Service And Registry Context
 
 `services.json`:
 
@@ -184,7 +249,7 @@ Sidecars improve function matching and give rules stronger evidence.
 
 These inputs help reports call out service and policy drift.
 
-## 10. Read The Report
+## 11. Read The Report
 
 Recommended review order:
 
